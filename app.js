@@ -3557,13 +3557,13 @@ function renderFeedbackFormHTML() {
 
         <div>
           <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-            ${state.lang === 'uz' ? 'Aloqa ma\'lumoti (Telefon yoki Email)' : state.lang === 'ru' ? 'Контактные данные (Телефон или Email)' : 'Contact Info (Phone or Email)'}
+            ${state.lang === 'uz' ? 'Aloqa ma\'lumoti (Telegram, Telefon yoki Email)' : state.lang === 'ru' ? 'Контактные данные (Telegram, Телефон или Email)' : 'Contact Info (Telegram, Phone or Email)'}
           </label>
           <div class="relative">
             <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
               <i class="fa-solid fa-address-book text-xs"></i>
             </span>
-            <input type="text" id="feedback-contact" required placeholder="${state.lang === 'uz' ? '+998 (90) 123-45-67 yoki email@example.com' : state.lang === 'ru' ? '+998 (90) 123-45-67 или email@example.com' : '+998 (90) 123-45-67 or email@example.com'}" class="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800/80 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white">
+            <input type="text" id="feedback-contact" required placeholder="${state.lang === 'uz' ? '@username, +998 (90) 123-45-67 yoki email@example.com' : state.lang === 'ru' ? '@username, +998 (90) 123-45-67 или email@example.com' : '@username, +998 (90) 123-45-67 or email@example.com'}" class="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800/80 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white">
           </div>
         </div>
 
@@ -3707,6 +3707,62 @@ async function sendFeedbackToTelegram(name, contact, type, message) {
                `💬 <b>Xabar:</b>\n<i>"${message}"</i>\n\n` +
                `🌐 <b>Sayt:</b> <a href="${window.location.origin}">UzMarket</a>`;
                
+  // Parse reply options
+  const inlineButtons = [];
+  const cleanContact = contact.trim();
+
+  // 1. Email check
+  if (cleanContact.includes('@') && cleanContact.includes('.')) {
+    const subject = encodeURIComponent(`UzMarket - Fikr-mulohaza bo'yicha javob`);
+    const body = encodeURIComponent(`Salom ${name},\n\nYozgan xabaringiz: "${message}"\n\nJavob: `);
+    inlineButtons.push({
+      text: "✉️ Email orqali javob yozish",
+      url: `mailto:${cleanContact}?subject=${subject}&body=${body}`
+    });
+  }
+
+  // 2. Telegram username check
+  if (cleanContact.startsWith('@')) {
+    const username = cleanContact.substring(1);
+    inlineButtons.push({
+      text: "💬 Telegramda javob berish",
+      url: `https://t.me/${username}`
+    });
+  } else if (/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(cleanContact)) {
+    inlineButtons.push({
+      text: "💬 Telegramda javob berish",
+      url: `https://t.me/${cleanContact}`
+    });
+  }
+
+  // 3. Phone number check
+  const digitsOnly = cleanContact.replace(/[^0-9+]/g, '');
+  if (digitsOnly.length >= 7) {
+    inlineButtons.push({
+      text: "📞 Telefon qilish",
+      url: `tel:${digitsOnly}`
+    });
+    
+    let tgPhone = digitsOnly;
+    if (tgPhone.startsWith('998') && !tgPhone.startsWith('+')) {
+      tgPhone = '+' + tgPhone;
+    } else if (/^\d{9}$/.test(tgPhone)) {
+      tgPhone = '+998' + tgPhone;
+    }
+    
+    if (tgPhone.startsWith('+')) {
+      inlineButtons.push({
+        text: "💬 Telegramda chat ochish",
+        url: `https://t.me/${tgPhone}`
+      });
+    }
+  }
+
+  // Row mapping: put each button on its own line for a beautiful and premium presentation
+  const replyMarkup = inlineButtons.length > 0 ? {
+    inline_keyboard: inlineButtons.map(btn => [btn])
+  } : undefined;
+
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
   
   const response = await fetch(url, {
@@ -3718,7 +3774,8 @@ async function sendFeedbackToTelegram(name, contact, type, message) {
       chat_id: chatId,
       text: text,
       parse_mode: 'HTML',
-      disable_web_page_preview: true
+      disable_web_page_preview: true,
+      reply_markup: replyMarkup
     })
   });
   
