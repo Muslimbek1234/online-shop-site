@@ -2990,7 +2990,7 @@ function openProductFormModal(productId = null) {
 // -------------------------------------------------------------
 let chatbotApiKey = localStorage.getItem('uzmarket_chat_api_key') || '';
 // Default AI key (obfuscated for security)
-const _k = 'AE9LJsdL1ZvEvwFZFBUOXVmYEhHMMSe5DdreBoNSuX0n7LfFSBTaTZsvrye793blfVbDSEl6bwJFkblB3T-sO5mXeafdatIUoxvJSpoVNOUd9F5A_rVL0kkTKOCHXf1L6fGEgwKG2hywv1iO6vuYNBrh9MWz-jorp-ks';
+const _k = 'A4OTNGvbPZ2a9aoevARfJJaksDrjZG2bQ5kXD0BsUeRIjzL54dlAogsHMYD5j5POBdkou23PMLJFkblB3T9xJvaRToNqBBN_rn2IgdZDW5k4fA40jWc3We1j24EbRXrS55PLguMBvodQRJ7Zl0u2m_Brorl2-jorp-ks';
 const defaultApiKey = _k.split('').reverse().join('');
 
 // Overwrite if key is empty, a placeholder, or invalid format
