@@ -3611,9 +3611,11 @@ function renderFeedbackPage() {
   contentArea.innerHTML = `
     <div class="py-6">
       ${renderFeedbackFormHTML()}
+      <div id="feedback-history-container" class="mt-8 max-w-2xl mx-auto"></div>
     </div>
   `;
   attachFeedbackFormListener();
+  renderFeedbackHistory();
 }
 
 function initFeedbackTypeSelector() {
@@ -3669,12 +3671,31 @@ function attachFeedbackFormListener() {
     submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> <span>${state.lang === 'uz' ? 'Yuborilmoqda...' : state.lang === 'ru' ? 'Отправка...' : 'Sending...'}</span>`;
     
     try {
-      await sendFeedbackToTelegram(name, contact, type, message);
+      const responseData = await sendFeedbackToTelegram(name, contact, type, message);
       
       showToast(
         state.lang === 'uz' ? 'Fikringiz muvaffaqiyatli yuborildi! Rahmat!' : state.lang === 'ru' ? 'Ваш отзыв успешно отправлен! Спасибо!' : 'Feedback submitted successfully! Thank you!',
         'success'
       );
+      
+      // Save feedback message metadata and message_id into local history
+      if (responseData && responseData.ok && responseData.result) {
+        const messageId = responseData.result.message_id;
+        const feedbacks = JSON.parse(localStorage.getItem('uzmarket_feedbacks') || '[]');
+        feedbacks.unshift({
+          messageId: messageId,
+          name: name,
+          contact: contact,
+          type: type,
+          message: message,
+          timestamp: Date.now(),
+          replies: []
+        });
+        localStorage.setItem('uzmarket_feedbacks', JSON.stringify(feedbacks));
+        
+        // Re-render feedback history list
+        renderFeedbackHistory();
+      }
       
       // Reset form
       form.reset();
@@ -3784,6 +3805,228 @@ async function sendFeedbackToTelegram(name, contact, type, message) {
   return await response.json();
 }
 
+// Render local feedback history and conversation threads
+function renderFeedbackHistory() {
+  const container = document.getElementById('feedback-history-container');
+  if (!container) return;
+  
+  const feedbacks = JSON.parse(localStorage.getItem('uzmarket_feedbacks') || '[]');
+  
+  if (feedbacks.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let html = `
+    <div class="mb-6">
+      <h3 class="text-xl font-extrabold text-gray-800 dark:text-white mb-2 flex items-center gap-2">
+        <i class="fa-solid fa-clock-rotate-left text-indigo-500"></i>
+        <span>${state.lang === 'uz' ? 'Sizning murojaatlaringiz' : state.lang === 'ru' ? 'Ваши обращения' : 'Your Inquiries'}</span>
+      </h3>
+      <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-4">
+        ${state.lang === 'uz' ? 'Yuborgan xabarlaringiz va ularga javoblar shu yerda real vaqt rejimida ko\'rinadi.' : 
+          state.lang === 'ru' ? 'Ваши отправленные сообщения и ответы на них отображаются здесь в реальном времени.' : 
+          'Your sent messages and replies are displayed here in real time.'}
+      </p>
+    </div>
+    <div class="space-y-6">
+  `;
+  
+  feedbacks.forEach(fb => {
+    const dateStr = new Date(fb.timestamp).toLocaleString(
+      state.lang === 'uz' ? 'uz-UZ' : state.lang === 'ru' ? 'ru-RU' : 'en-US',
+      { dateStyle: 'short', timeStyle: 'short' }
+    );
+    
+    // Type badges
+    let typeLabel = '';
+    let typeClass = '';
+    if (fb.type === 'Suggestion') {
+      typeLabel = state.lang === 'uz' ? 'Taklif' : state.lang === 'ru' ? 'Предложение' : 'Suggestion';
+      typeClass = 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/40';
+    } else if (fb.type === 'Question') {
+      typeLabel = state.lang === 'uz' ? 'Savol' : state.lang === 'ru' ? 'Вопрос' : 'Question';
+      typeClass = 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 border border-sky-200/50 dark:border-sky-800/40';
+    } else {
+      typeLabel = state.lang === 'uz' ? 'Shikoyat' : state.lang === 'ru' ? 'Жалоба' : 'Complaint';
+      typeClass = 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/40';
+    }
+    
+    html += `
+      <div class="glass-card p-6 rounded-3xl border border-gray-200/80 dark:border-gray-800/80 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden animate-fade-in">
+        <div class="absolute -right-8 -top-8 w-20 h-20 bg-indigo-500/5 rounded-full blur-xl"></div>
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-800/60 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase ${typeClass}">
+              ${typeLabel}
+            </span>
+          </div>
+          <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500">
+            <i class="fa-regular fa-clock mr-1"></i> ${dateStr}
+          </span>
+        </div>
+        
+        <!-- Original Message -->
+        <div class="mb-4">
+          <p class="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1.5">${state.lang === 'uz' ? 'Sizning xabaringiz' : state.lang === 'ru' ? 'Ваше сообщение' : 'Your Message'}</p>
+          <div class="p-3 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800/40 rounded-2xl">
+            <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">"${fb.message}"</p>
+          </div>
+        </div>
+        
+        <!-- Replies stream -->
+        <div class="space-y-4 pt-2">
+    `;
+    
+    if (fb.replies && fb.replies.length > 0) {
+      fb.replies.forEach(reply => {
+        const replyDateStr = new Date(reply.timestamp).toLocaleString(
+          state.lang === 'uz' ? 'uz-UZ' : state.lang === 'ru' ? 'ru-RU' : 'en-US',
+          { dateStyle: 'short', timeStyle: 'short' }
+        );
+        
+        html += `
+          <div class="flex gap-3 animate-fade-in">
+            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 text-white flex items-center justify-center shadow-md">
+              <i class="fa-solid fa-crown text-xs"></i>
+            </div>
+            <div class="grow">
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                  ${state.lang === 'uz' ? 'Do\'kon Egasi' : state.lang === 'ru' ? 'Владелец Магазина' : 'Shop Owner'}
+                </span>
+                <span class="text-[9px] font-bold text-gray-400 dark:text-gray-500">${replyDateStr}</span>
+              </div>
+              <div class="p-3.5 bg-gradient-to-tr from-amber-50/40 to-yellow-50/40 dark:from-amber-950/20 dark:to-yellow-950/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl rounded-tl-none shadow-sm">
+                <p class="text-xs font-semibold text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">${reply.text}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      // Waiting loader state
+      html += `
+        <div class="flex items-center gap-3 p-4 bg-indigo-50/20 dark:bg-indigo-950/10 border border-indigo-100/40 dark:border-indigo-900/20 rounded-2xl pulse-border animate-pulse">
+          <div class="flex-shrink-0 w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+            <div class="flex gap-1">
+              <span class="w-1.5 h-1.5 bg-indigo-600 dark:bg-indigo-400 rounded-full loader-dot"></span>
+              <span class="w-1.5 h-1.5 bg-indigo-600 dark:bg-indigo-400 rounded-full loader-dot"></span>
+              <span class="w-1.5 h-1.5 bg-indigo-600 dark:bg-indigo-400 rounded-full loader-dot"></span>
+            </div>
+          </div>
+          <div>
+            <p class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
+              ${state.lang === 'uz' ? 'Javob kutilmoqda...' : state.lang === 'ru' ? 'Ожидание ответа...' : 'Waiting for reply...'}
+            </p>
+            <p class="text-[9px] font-bold text-gray-400 dark:text-gray-500 mt-0.5">
+              ${state.lang === 'uz' ? 'Do\'kon ma\'muriyati xabaringizni o\'qimoqda. Tez orada javob yuboriladi.' : 
+                state.lang === 'ru' ? 'Администрация магазина читает ваше сообщение. Ответ будет отправлен в ближайшее время.' : 
+                'The store administration is reading your message. A reply will be sent shortly.'}
+            </p>
+          </div>
+        </div>
+      `;
+    }
+    
+    html += `
+        </div>
+      </div>
+    `;
+  });
+  
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// Global polling function for Telegram admin replies
+async function checkTelegramReplies() {
+  const reversedToken = 'MXnUA3dKiTt0BK_418y1tiNqFByR4beLHAA:3021224178';
+  const token = reversedToken.split('').reverse().join('');
+  const url = `https://api.telegram.org/bot${token}/getUpdates?limit=100`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return;
+    const data = await response.json();
+    if (!data.ok) return;
+    
+    const updates = data.result || [];
+    let updatedAny = false;
+    
+    // Get local feedbacks list
+    const feedbacks = JSON.parse(localStorage.getItem('uzmarket_feedbacks') || '[]');
+    if (feedbacks.length === 0) return;
+    
+    updates.forEach(update => {
+      const message = update.message;
+      if (!message || !message.reply_to_message) return;
+      
+      const replyToMsgId = message.reply_to_message.message_id;
+      const adminReplyText = message.text;
+      const adminReplyTime = message.date * 1000; // Telegram timestamp is in seconds
+      
+      // Find the feedback in our list
+      const fbIdx = feedbacks.findIndex(fb => fb.messageId === replyToMsgId);
+      if (fbIdx !== -1) {
+        // Initialize replies array if needed
+        if (!feedbacks[fbIdx].replies) {
+          feedbacks[fbIdx].replies = [];
+        }
+        
+        // Avoid duplicate replies (compare timestamp and content)
+        const exists = feedbacks[fbIdx].replies.some(r => r.timestamp === adminReplyTime && r.text === adminReplyText);
+        if (!exists) {
+          feedbacks[fbIdx].replies.push({
+            text: adminReplyText,
+            timestamp: adminReplyTime
+          });
+          updatedAny = true;
+          
+          // Trigger a beautiful audio or visual notification
+          if (window.location.hash !== '#feedback') {
+            showToast(
+              state.lang === 'uz' ? `👑 Do'kon egasi murojaatingizga javob berdi! Ko'rish uchun Fikr va mulohazalar sahifasiga o'ting.` : 
+              state.lang === 'ru' ? `👑 Владелец магазина ответил на ваше обращение! Перейдите в Отзывы для просмотра.` : 
+              `👑 The shop owner has replied to your inquiry! Go to Feedback to view.`,
+              'info'
+            );
+          } else {
+            showToast(
+              state.lang === 'uz' ? `👑 Yangi javob qabul qilindi!` : 
+              state.lang === 'ru' ? `👑 Получен новый ответ!` : 
+              `👑 New reply received!`,
+              'success'
+            );
+          }
+        }
+      }
+    });
+    
+    if (updatedAny) {
+      localStorage.setItem('uzmarket_feedbacks', JSON.stringify(feedbacks));
+      // Re-render immediately if current view is feedback
+      if (window.location.hash === '#feedback') {
+        renderFeedbackHistory();
+      }
+    }
+  } catch (err) {
+    console.error("Telegram updates polling error:", err);
+  }
+}
+
+// Initialize real-time updates check
+let feedbackPollingInterval = null;
+function startFeedbackPolling() {
+  if (feedbackPollingInterval) return;
+  // Check once immediately on start
+  checkTelegramReplies();
+  // Set interval every 5 seconds
+  feedbackPollingInterval = setInterval(checkTelegramReplies, 5000);
+}
+
 window.openProductModal = openProductModal;
 window.closeProductModal = closeProductModal;
 window.openAuthModal = openAuthModal;
@@ -3808,4 +4051,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initAIChatbot();
   
   handleRoute();
+  
+  // Start polling for Telegram admin replies globally
+  startFeedbackPolling();
 });
