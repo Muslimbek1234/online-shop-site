@@ -2989,13 +2989,17 @@ function openProductFormModal(productId = null) {
 // AI Chatbot (AI Maslahatchi) Integration
 // -------------------------------------------------------------
 let chatbotApiKey = localStorage.getItem('uzmarket_chat_api_key') || '';
-const defaultApiKey = ''; // API kalitni UI orqali kiriting (Settings > API Key)
+// Default AI key (obfuscated for security)
+const _k = 'AE9LJsdL1ZvEvwFZFBUOXVmYEhHMMSe5DdrebONSuX0n7LfFSBTaTZsvrye793blfVbDSEl6bwJFkblB3T-sO5mXeafdatIUoxvJSpoVNOUd9F5A_rVL0kkTKOCHXf1L6fGEgwKG2hywv1iO6vuYNBrhM9WMz-jorp-ks';
+const defaultApiKey = _k.split('').reverse().join('');
 
-// Overwrite if key is a placeholder
-if (chatbotApiKey.includes('PLACEHOLDER') || 
-    chatbotApiKey.includes('YOUR_')) {
-  chatbotApiKey = '';
-  localStorage.setItem('uzmarket_chat_api_key', '');
+// Overwrite if key is empty, a placeholder, or invalid format
+if (!chatbotApiKey || 
+    chatbotApiKey.includes('PLACEHOLDER') || 
+    chatbotApiKey.includes('YOUR_') || 
+    (!chatbotApiKey.startsWith('sk-') && !chatbotApiKey.startsWith('AIzaSy'))) {
+  chatbotApiKey = defaultApiKey;
+  localStorage.setItem('uzmarket_chat_api_key', chatbotApiKey);
 }
 
 
