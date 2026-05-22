@@ -1,0 +1,243 @@
+/* 
+  UzMarket Custom Stylesheet
+  Provides typography overrides, glassmorphism utilities, scrollbars, and fluid animations.
+*/
+
+:root {
+  --primary-glow: radial-gradient(rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.05));
+  --glass-bg: rgba(255, 255, 255, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-dark-bg: rgba(17, 24, 39, 0.6);
+  --glass-dark-border: rgba(255, 255, 255, 0.06);
+}
+
+/* Base resets & fonts */
+body {
+  font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+  background: radial-gradient(circle at 10% 20%, rgb(240, 243, 250) 0%, rgb(233, 237, 247) 90%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Dark mode override */
+.dark body {
+  background: radial-gradient(circle at 50% 50%, rgb(17, 24, 39) 0%, rgb(9, 13, 24) 100%);
+  color: #f3f4f6;
+}
+
+/* Glassmorphism Styles */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dark .glass-nav {
+  background: rgba(17, 24, 39, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.04);
+}
+
+.dark .glass-card {
+  background: rgba(31, 41, 55, 0.45);
+  border: 1px solid var(--glass-dark-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Premium Card hover effects */
+.hover-premium {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hover-premium:hover {
+  transform: translateY(-5px) scale(1.01);
+  box-shadow: 0 12px 24px -10px rgba(99, 102, 241, 0.3);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulseBorder {
+  0%, 100% { border-color: rgba(99, 102, 241, 0.3); }
+  50% { border-color: rgba(168, 85, 247, 0.8); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pulse-border {
+  animation: pulseBorder 2s infinite;
+}
+
+/* Dot animation */
+.loader-dot {
+  animation: loaderDot 1.4s infinite ease-in-out both;
+}
+.loader-dot:nth-child(1) { animation-delay: -0.32s; }
+.loader-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes loaderDot {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1.0); }
+}
+
+/* Custom Checkbox Toggle */
+.toggle-checkbox:checked {
+  right: 0;
+  border-color: #4f46e5;
+  background-color: #4f46e5;
+}
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #4f46e5;
+}
+
+/* Simulators custom overlays */
+.click-sim-bg {
+  background: linear-gradient(135deg, #0093E9 0%, #80D0C7 100%);
+}
+
+.payme-sim-bg {
+  background: linear-gradient(135deg, #00b9ff 0%, #0077c5 100%);
+}
+
+/* Star ratings color */
+.star-filled {
+  color: #fbbf24;
+}
+
+.star-empty {
+  color: #d1d5db;
+}
+
+.dark .star-empty {
+  color: #4b5563;
+}
+
+/* AI Chatbot Custom Premium Styles */
+#ai-chat-toggle-btn {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3), 0 0 0 2px rgba(99, 102, 241, 0.1);
+  animation: premiumFloatGlow 4s ease-in-out infinite;
+}
+
+#ai-chat-toggle-btn:hover {
+  transform: translateY(-8px) scale(1.12) rotate(8deg) !important;
+  box-shadow: 0 15px 35px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(99, 102, 241, 0.4);
+}
+
+#ai-chat-toggle-btn:active {
+  transform: scale(0.92) !important;
+}
+
+#ai-chat-drawer {
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 24px 60px rgba(31, 38, 135, 0.15) !important;
+}
+
+.dark #ai-chat-drawer {
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(17, 24, 39, 0.82) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Custom Scrollbar specifically for AI Chat Messages */
+#ai-chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+#ai-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#ai-chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 4px;
+}
+
+#ai-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* Quick prompts horizontal scrollbar */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* AI Chat message styles */
+.msg-bubble {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.msg-bubble:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.dark .msg-bubble:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes premiumFloatGlow {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.35), 0 0 0 2px rgba(99, 102, 241, 0.1);
+  }
+  50% {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 35px rgba(168, 85, 247, 0.5), 0 0 20px 8px rgba(99, 102, 241, 0.4);
+  }
+}
+
+
