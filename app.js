@@ -788,15 +788,9 @@ function renderHome() {
         </div>
       </div>
     </div>
-
-    <!-- Fikr va mulohazalar -->
-    <div class="mt-16">
-      ${renderFeedbackFormHTML()}
-    </div>
   `;
   
   attachProductCardListeners();
-  attachFeedbackFormListener();
 }
 
 // Helper to render product card (standard template)
