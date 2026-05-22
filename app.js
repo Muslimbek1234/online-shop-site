@@ -3698,30 +3698,33 @@ async function sendFeedbackToTelegram(name, contact, type, message) {
   const chatId = '7584938217';
   
   const dateStr = new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+  const cleanContact = contact.trim();
   
+  // Format the contact details in the text block with clickable HTML protocols (fully supported inside message body by Telegram clients)
+  let contactHtml = `<code>${cleanContact}</code>`;
+  if (cleanContact.includes('@') && cleanContact.includes('.')) {
+    const subject = encodeURIComponent(`UzMarket - Fikr-mulohaza bo'yicha javob`);
+    const body = encodeURIComponent(`Salom ${name},\n\nYozgan xabaringiz: "${message}"\n\nJavob: `);
+    contactHtml = `<a href="mailto:${cleanContact}?subject=${subject}&body=${body}">${cleanContact}</a>`;
+  } else {
+    const digitsOnly = cleanContact.replace(/[^0-9+]/g, '');
+    if (digitsOnly.length >= 7) {
+      contactHtml = `<a href="tel:${digitsOnly}">${cleanContact}</a>`;
+    }
+  }
+
   const text = `<b>🔔 Yangi Fikr-Mulohaza Qabul Qilindi!</b>\n\n` +
                `👤 <b>Foydalanuvchi:</b> ${name}\n` +
-               `📞 <b>Aloqa:</b> ${contact}\n` +
+               `📞 <b>Aloqa:</b> ${contactHtml}\n` +
                `🏷️ <b>Xabar turi:</b> ${type === 'Suggestion' ? 'Taklif 💡' : type === 'Question' ? 'Savol ❓' : 'Shikoyat ⚠️'}\n` +
                `📅 <b>Sana:</b> ${dateStr}\n\n` +
                `💬 <b>Xabar:</b>\n<i>"${message}"</i>\n\n` +
                `🌐 <b>Sayt:</b> <a href="${window.location.origin}">UzMarket</a>`;
                
-  // Parse reply options
+  // Parse reply options (only HTTP/HTTPS/TG protocols are allowed in inline buttons, mailto/tel will cause BUTTON_URL_INVALID)
   const inlineButtons = [];
-  const cleanContact = contact.trim();
 
-  // 1. Email check
-  if (cleanContact.includes('@') && cleanContact.includes('.')) {
-    const subject = encodeURIComponent(`UzMarket - Fikr-mulohaza bo'yicha javob`);
-    const body = encodeURIComponent(`Salom ${name},\n\nYozgan xabaringiz: "${message}"\n\nJavob: `);
-    inlineButtons.push({
-      text: "✉️ Email orqali javob yozish",
-      url: `mailto:${cleanContact}?subject=${subject}&body=${body}`
-    });
-  }
-
-  // 2. Telegram username check
+  // 1. Telegram username check
   if (cleanContact.startsWith('@')) {
     const username = cleanContact.substring(1);
     inlineButtons.push({
@@ -3735,15 +3738,10 @@ async function sendFeedbackToTelegram(name, contact, type, message) {
     });
   }
 
-  // 3. Phone number check
-  const digitsOnly = cleanContact.replace(/[^0-9+]/g, '');
-  if (digitsOnly.length >= 7) {
-    inlineButtons.push({
-      text: "📞 Telefon qilish",
-      url: `tel:${digitsOnly}`
-    });
-    
-    let tgPhone = digitsOnly;
+  // 2. Phone number check for Telegram chat link
+  const digitsOnlyForTg = cleanContact.replace(/[^0-9+]/g, '');
+  if (digitsOnlyForTg.length >= 7) {
+    let tgPhone = digitsOnlyForTg;
     if (tgPhone.startsWith('998') && !tgPhone.startsWith('+')) {
       tgPhone = '+' + tgPhone;
     } else if (/^\d{9}$/.test(tgPhone)) {
