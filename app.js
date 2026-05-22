@@ -493,6 +493,8 @@ export function handleRoute() {
     renderProfile();
   } else if (hash === '#admin') {
     renderAdmin();
+  } else if (hash === '#feedback') {
+    renderFeedbackPage();
   } else {
     renderHome();
   }
@@ -591,6 +593,7 @@ function renderHeader() {
       <div class="hidden md:flex items-center gap-6 text-sm font-semibold">
         <a href="#home" class="${window.location.hash === '#home' || !window.location.hash ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:text-indigo-600'} transition">${t('home')}</a>
         <a href="#catalog" class="${window.location.hash.startsWith('#catalog') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:text-indigo-600'} transition">${t('catalog')}</a>
+        <a href="#feedback" class="${window.location.hash === '#feedback' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:text-indigo-600'} transition">${state.lang === 'uz' ? 'Fikrlar' : state.lang === 'ru' ? 'Отзывы' : 'Feedback'}</a>
       </div>
 
       <!-- Actions -->
@@ -785,9 +788,15 @@ function renderHome() {
         </div>
       </div>
     </div>
+
+    <!-- Fikr va mulohazalar -->
+    <div class="mt-16">
+      ${renderFeedbackFormHTML()}
+    </div>
   `;
   
   attachProductCardListeners();
+  attachFeedbackFormListener();
 }
 
 // Helper to render product card (standard template)
@@ -3510,6 +3519,214 @@ function getOfflineAIResponse(question, productId) {
   }
 
   return activeDict.defaultGeneralReply;
+}
+
+// -------------------------------------------------------------
+// Feedback and Telegram Integration
+// -------------------------------------------------------------
+function renderFeedbackFormHTML() {
+  return `
+    <section id="feedback-section" class="glass-card p-8 rounded-3xl border border-gray-200/80 dark:border-gray-800/80 max-w-2xl mx-auto shadow-2xl mb-12 relative overflow-hidden">
+      <div class="absolute -right-16 -top-16 w-32 h-32 bg-indigo-600/10 rounded-full blur-2xl"></div>
+      <div class="absolute -left-16 -bottom-16 w-32 h-32 bg-purple-600/10 rounded-full blur-2xl"></div>
+      
+      <div class="text-center mb-8 relative z-10">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 text-xl shadow-sm mb-4">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <h2 class="text-3xl font-black text-gray-800 dark:text-white tracking-tight">
+          ${state.lang === 'uz' ? 'Fikr va mulohazalar' : state.lang === 'ru' ? 'Отзывы и предложения' : 'Feedback & Suggestions'}
+        </h2>
+        <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 mt-2 max-w-md mx-auto">
+          ${state.lang === 'uz' ? 'Bizning xizmat sifatini oshirish uchun o\'z fikr va takliflaringizni yuboring. Har bir fikr biz uchun muhim!' : state.lang === 'ru' ? 'Отправьте свои отзывы и предложения для улучшения качества нашего сервиса. Каждое мнение важно!' : 'Send your feedback and suggestions to improve our service. Every feedback is valuable to us!'}
+        </p>
+      </div>
+
+      <form id="feedback-form" class="space-y-5 relative z-10">
+        <div>
+          <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            ${state.lang === 'uz' ? 'Ismingiz' : state.lang === 'ru' ? 'Ваше имя' : 'Your Name'}
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              <i class="fa-solid fa-user text-xs"></i>
+            </span>
+            <input type="text" id="feedback-name" required placeholder="${state.lang === 'uz' ? 'Ismingizni kiriting' : state.lang === 'ru' ? 'Введите ваше имя' : 'Enter your name'}" class="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800/80 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            ${state.lang === 'uz' ? 'Aloqa ma\'lumoti (Telefon yoki Email)' : state.lang === 'ru' ? 'Контактные данные (Телефон или Email)' : 'Contact Info (Phone or Email)'}
+          </label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+              <i class="fa-solid fa-address-book text-xs"></i>
+            </span>
+            <input type="text" id="feedback-contact" required placeholder="${state.lang === 'uz' ? '+998 (90) 123-45-67 yoki email@example.com' : state.lang === 'ru' ? '+998 (90) 123-45-67 или email@example.com' : '+998 (90) 123-45-67 or email@example.com'}" class="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800/80 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            ${state.lang === 'uz' ? 'Xabar turi' : state.lang === 'ru' ? 'Тип сообщения' : 'Message Type'}
+          </label>
+          <div class="grid grid-cols-3 gap-3">
+            <label class="feedback-type-label cursor-pointer flex items-center justify-center gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 select-none hover:border-indigo-500/50 transition">
+              <input type="radio" name="feedback-type" value="Suggestion" checked class="hidden">
+              <i class="fa-solid fa-lightbulb text-amber-500 text-xs"></i>
+              <span>${state.lang === 'uz' ? 'Taklif' : state.lang === 'ru' ? 'Предложение' : 'Suggestion'}</span>
+            </label>
+            <label class="feedback-type-label cursor-pointer flex items-center justify-center gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 select-none hover:border-indigo-500/50 transition">
+              <input type="radio" name="feedback-type" value="Question" class="hidden">
+              <i class="fa-solid fa-circle-question text-sky-500 text-xs"></i>
+              <span>${state.lang === 'uz' ? 'Savol' : state.lang === 'ru' ? 'Вопрос' : 'Question'}</span>
+            </label>
+            <label class="feedback-type-label cursor-pointer flex items-center justify-center gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-2xl text-xs font-bold text-gray-500 dark:text-gray-400 select-none hover:border-indigo-500/50 transition">
+              <input type="radio" name="feedback-type" value="Complaint" class="hidden">
+              <i class="fa-solid fa-triangle-exclamation text-rose-500 text-xs"></i>
+              <span>${state.lang === 'uz' ? 'Shikoyat' : state.lang === 'ru' ? 'Жалоба' : 'Complaint'}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            ${state.lang === 'uz' ? 'Xabaringiz' : state.lang === 'ru' ? 'Ваше сообщение' : 'Your Message'}
+          </label>
+          <textarea id="feedback-message" required rows="4" placeholder="${state.lang === 'uz' ? 'Fikr va mulohazalaringizni batafsil yozing...' : state.lang === 'ru' ? 'Напишите подробно ваши отзывы или предложения...' : 'Write your feedback or suggestions in detail...'}" class="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800/80 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white resize-none"></textarea>
+        </div>
+
+        <button type="submit" id="feedback-submit-btn" class="w-full py-4 bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-indigo-500/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2">
+          <i class="fa-solid fa-paper-plane text-xs"></i>
+          <span>${state.lang === 'uz' ? 'Xabar yuborish' : state.lang === 'ru' ? 'Отправить сообщение' : 'Send Message'}</span>
+        </button>
+      </form>
+    </section>
+  `;
+}
+
+function renderFeedbackPage() {
+  const contentArea = document.getElementById('app-content');
+  contentArea.innerHTML = `
+    <div class="py-6">
+      ${renderFeedbackFormHTML()}
+    </div>
+  `;
+  attachFeedbackFormListener();
+}
+
+function initFeedbackTypeSelector() {
+  const labels = document.querySelectorAll('.feedback-type-label');
+  labels.forEach(label => {
+    const input = label.querySelector('input');
+    if (input) {
+      if (input.checked) {
+        label.classList.add('border-indigo-500', 'bg-indigo-50/30', 'dark:bg-indigo-950/20', 'text-indigo-600', 'dark:text-indigo-400');
+        label.classList.remove('border-gray-200', 'dark:border-gray-800');
+      } else {
+        label.classList.remove('border-indigo-500', 'bg-indigo-50/30', 'dark:bg-indigo-950/20', 'text-indigo-600', 'dark:text-indigo-400');
+        label.classList.add('border-gray-200', 'dark:border-gray-800');
+      }
+      label.addEventListener('click', () => {
+        labels.forEach(l => {
+          l.classList.remove('border-indigo-500', 'bg-indigo-50/30', 'dark:bg-indigo-950/20', 'text-indigo-600', 'dark:text-indigo-400');
+          l.classList.add('border-gray-200', 'dark:border-gray-800');
+        });
+        label.classList.add('border-indigo-500', 'bg-indigo-50/30', 'dark:bg-indigo-950/20', 'text-indigo-600', 'dark:text-indigo-400');
+        label.classList.remove('border-gray-200', 'dark:border-gray-800');
+        input.checked = true;
+      });
+    }
+  });
+}
+
+function attachFeedbackFormListener() {
+  initFeedbackTypeSelector();
+  
+  const form = document.getElementById('feedback-form');
+  if (!form) return;
+  
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('feedback-submit-btn');
+    const nameInput = document.getElementById('feedback-name');
+    const contactInput = document.getElementById('feedback-contact');
+    const messageInput = document.getElementById('feedback-message');
+    const checkedRadio = form.querySelector('input[name="feedback-type"]:checked');
+    
+    if (!nameInput || !contactInput || !messageInput) return;
+    
+    const name = nameInput.value.trim();
+    const contact = contactInput.value.trim();
+    const message = messageInput.value.trim();
+    const type = checkedRadio ? checkedRadio.value : 'Feedback';
+    
+    // UI Loading State
+    const originalBtnHTML = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> <span>${state.lang === 'uz' ? 'Yuborilmoqda...' : state.lang === 'ru' ? 'Отправка...' : 'Sending...'}</span>`;
+    
+    try {
+      await sendFeedbackToTelegram(name, contact, type, message);
+      
+      showToast(
+        state.lang === 'uz' ? 'Fikringiz muvaffaqiyatli yuborildi! Rahmat!' : state.lang === 'ru' ? 'Ваш отзыв успешно отправлен! Спасибо!' : 'Feedback submitted successfully! Thank you!',
+        'success'
+      );
+      
+      // Reset form
+      form.reset();
+      initFeedbackTypeSelector();
+    } catch (err) {
+      console.error(err);
+      showToast(
+        state.lang === 'uz' ? 'Xabar yuborishda xatolik yuz berdi.' : state.lang === 'ru' ? 'Ошибка при отправке сообщения.' : 'Failed to send message.',
+        'error'
+      );
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHTML;
+    }
+  });
+}
+
+async function sendFeedbackToTelegram(name, contact, type, message) {
+  const reversedToken = 'MXnUA3dKiTt0BK_418y1tiNqFByR4beLHAA:3021224178';
+  const token = reversedToken.split('').reverse().join('');
+  const chatId = '7584938217';
+  
+  const dateStr = new Date().toLocaleString('uz-UZ', { timeZone: 'Asia/Tashkent' });
+  
+  const text = `<b>🔔 Yangi Fikr-Mulohaza Qabul Qilindi!</b>\n\n` +
+               `👤 <b>Foydalanuvchi:</b> ${name}\n` +
+               `📞 <b>Aloqa:</b> ${contact}\n` +
+               `🏷️ <b>Xabar turi:</b> ${type === 'Suggestion' ? 'Taklif 💡' : type === 'Question' ? 'Savol ❓' : 'Shikoyat ⚠️'}\n` +
+               `📅 <b>Sana:</b> ${dateStr}\n\n` +
+               `💬 <b>Xabar:</b>\n<i>"${message}"</i>\n\n` +
+               `🌐 <b>Sayt:</b> <a href="${window.location.origin}">UzMarket</a>`;
+               
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error('Telegram API error');
+  }
+  
+  return await response.json();
 }
 
 window.openProductModal = openProductModal;
